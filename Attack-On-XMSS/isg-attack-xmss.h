@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <gdsl.h>
+#include <string.h>
 
 // Set of parameters defining an XMSS or XMSS^MT scheme and number of bits to chop secret OTS seeds 
 // to.
