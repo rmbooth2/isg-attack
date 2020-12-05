@@ -31,13 +31,13 @@ typedef struct {
     int num_runtime_checkpoints;
     // Average intermediate runtimes at each runtime checkpoint. Extra elements are 0. The element 
     // at index num_runtime_checkpoints-1 is the average total runtime.
-    double average_intermediate_runtimes[MAX_NUM_CHECKPOINTS];
+    long double average_intermediate_runtimes[MAX_NUM_CHECKPOINTS];
     // Percentage of attacks that succeeded before each intermediate checkpoint as a decimal. Extra 
     // elements are zero. i^th element is the percentage of attacks that succeeded before the i^th
     // checkpoint.
     double average_intermediate_successes[MAX_NUM_CHECKPOINTS];
     // Average memory usage to store set of oracle query signature responses
-    long average_memory_usage;
+    long double average_memory_usage;
 } ISG_Attack_Test_Result;
 
 // Treats byte array as a large unsigned integer and increments its value by 1

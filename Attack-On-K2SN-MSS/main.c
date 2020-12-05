@@ -146,6 +146,7 @@ void isg_attack(ISG_Attack_Result* attack_result, long num_oracle_queries, long 
 	// Iterate up to g_max times, where g_max is the largest g parameter we are testing, unless the 
 	// attack succeeds before that point in which case we stop iterating immediately 
 	while (iteration_counter < num_sk_guesses[num_runtime_checkpoints-1] && !has_succeeded) {
+
 		//Compute KSN-OTS signature of M using OTS sk guess as the secret key
 		KSNOTS_sign(ots_sk_guess, M, ots_sig_guess);
 
@@ -189,21 +190,23 @@ void isg_attack(ISG_Attack_Result* attack_result, long num_oracle_queries, long 
 
 		iteration_counter++;
 
-		//If this iteration is a checkpoint, record the current intermediate runtime
-		if (iteration_counter = num_sk_guesses[next_checkpoint_index]) {
-			// Record runtime at checkpoint
-			attack_result->intermediate_runtimes[next_checkpoint_index] = (clock() - 
-			  attack_start_time) - uncounted_time;
-			
-			// If attack succeeded, the runtime of all the remaining checkpoints is the same
-			if (has_succeeded) {
-				for (int i = next_checkpoint_index + 1; i < num_runtime_checkpoints; i++) {
-					attack_result->intermediate_runtimes[i] = attack_result->
-					  intermediate_runtimes[next_checkpoint_index];
-				}
-			}
+		//If this iteration is a checkpoint or the attack succeeded then we record the current 
+		//runtime
+		if (iteration_counter == num_sk_guesses[next_checkpoint_index] || has_succeeded) {
+			//Current runtime
+			temp_time = (clock() - attack_start_time) - uncounted_time;
 
-			next_checkpoint_index++;
+			// If attack succeeded, the runtime of all the remaining checkpoints is the current
+			// runtime
+			if (has_succeeded) {
+				for (int i = next_checkpoint_index; i < num_runtime_checkpoints; i++) {
+					attack_result->intermediate_runtimes[i] = temp_time;
+				}
+			//Otherwise, we only record the intermediate runtime at this iteration and move on
+			} else {
+				attack_result->intermediate_runtimes[next_checkpoint_index] = temp_time;
+				next_checkpoint_index++;
+			}
 		}
 	}
 
@@ -270,7 +273,7 @@ void isg_attack_test(ISG_Attack_Test_Result* test_result, long reduced_sk_size,
 	ISG_Attack_Result single_attack_results;
 	//Running runtimes at each checkpoint, number of successes before each checkpoint, and memory 
 	//usage
-	long intermediate_runtime_sums[num_runtime_checkpoints];
+	long long intermediate_runtime_sums[num_runtime_checkpoints];
 	for (int i = 0; i < num_runtime_checkpoints; i++){
 		intermediate_runtime_sums[i] = 0;
 	}
@@ -278,7 +281,7 @@ void isg_attack_test(ISG_Attack_Test_Result* test_result, long reduced_sk_size,
 	for (int i = 0; i < num_runtime_checkpoints; i++){
 		intermediate_success_sums[i] = 0;
 	}
-	long memory_usage_sum = 0;
+	long long memory_usage_sum = 0;
 
 	//Invoke ISG Attack num_attack_iterations times and keep running total of results
 	for (int i = 0; i < num_attack_iterations; i++) {
@@ -305,12 +308,12 @@ void isg_attack_test(ISG_Attack_Test_Result* test_result, long reduced_sk_size,
 	//Calculate average runtimes, success probabilities, and memory usage
 	test_result->num_runtime_checkpoints = num_runtime_checkpoints;
 	for (int i = 0; i < num_runtime_checkpoints; i++) {
-		test_result->average_intermediate_runtimes[i] = ((double) intermediate_runtime_sums[i]) / 
-		  ((double) num_attack_iterations);
+		test_result->average_intermediate_runtimes[i] = ((long double) intermediate_runtime_sums[i])
+		  / ((long double) num_attack_iterations);
 		test_result->average_intermediate_successes[i] = ((double) intermediate_success_sums[i]) /
 		  ((double) num_attack_iterations);
 	}
-	test_result->average_memory_usage = ((double) memory_usage_sum) / ((double)
+	test_result->average_memory_usage = ((long double) memory_usage_sum) / ((long double)
 	  num_attack_iterations);
 	
 	return;
@@ -379,18 +382,18 @@ int main(int argc, char *argv[]) {
 	//Print test results
 	printf("\n---TEST COMPLETE---\n");
 	printf("Printing test results:\n");
-	printf("\tAverage runtimes (clock ticks, seconds):\t%lf, %lf\n", 
+	printf("\tAverage runtimes (clock ticks, seconds):\t%Lf, %Lf\n", 
 	         test_result.average_intermediate_runtimes[0], 
-			 test_result.average_intermediate_runtimes[0] / ((double) CLOCKS_PER_SEC));
+			 test_result.average_intermediate_runtimes[0] / ((long double) CLOCKS_PER_SEC));
 	for (int i = 1; i < test_result.num_runtime_checkpoints; i++) {
-		printf("\t\t\t\t\t\t\t%lf, %lf\n", test_result.average_intermediate_runtimes[i], 
-			     test_result.average_intermediate_runtimes[i] / ((double) CLOCKS_PER_SEC));
+		printf("\t\t\t\t\t\t\t%Lf, %Lf\n", test_result.average_intermediate_runtimes[i], 
+			     test_result.average_intermediate_runtimes[i] / ((long double) CLOCKS_PER_SEC));
 	}
 	printf("\tSuccess probabilities:\t%lf\n", test_result.average_intermediate_successes[0]);
 	for (int i = 1; i < test_result.num_runtime_checkpoints; i++) {
 		printf("\t\t\t\t%lf\n", test_result.average_intermediate_successes[i]);
 	}
-	printf("\tMemory usage (in bytes):\t%ld\n", test_result.average_memory_usage / 8);
+	printf("\tMemory usage (in bytes):\t%Lf\n", test_result.average_memory_usage / ((long long) 8));
 	printf("\tTest real time (seconds):\t%lf\n", ((double) (test_end_time - test_start_time)) / 
 	         (double) CLOCKS_PER_SEC);
 
